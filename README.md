@@ -6,7 +6,7 @@ A React-based chat interface for interacting with local LLM models via the LM St
 
 This application provides an OpenAI-inspired user interface to:
 - **Manage Local Models**: View available models, load/unload them on demand
-- **Chat with LLMs**: Send messages to locally hosted AI models
+- **Chat with LLMs**: Send messages to locally hosted AI models with real-time streaming
 - **View Response Stats**: Monitor token usage and model performance metrics
 - **Markdown Support**: Render rich text output from models including bold, italic, code blocks, and more
 
@@ -22,8 +22,15 @@ This application provides an OpenAI-inspired user interface to:
 - Modern dark theme UI inspired by OpenAI's ChatGPT
 - User and assistant message bubbles with distinct styling
 - Auto-scrolling chat history
-- Loading state indicator while model generates response
+- **Real-time streaming responses** - see content appear as it's being generated
+- **Blinking cursor animation** during response generation for smooth typing effect
 - Enter to send, Shift+Enter for new lines
+
+### Streaming Response Features
+- Server-Sent Events (SSE) stream from LM Studio API
+- `response.output_text.delta` events append text in real-time
+- Previous conversation context maintained via response ID tracking
+- Markdown rendering on completed messages (code blocks, formatting, etc.)
 
 ### Markdown Support
 - Render rich text output from models including:
@@ -35,8 +42,19 @@ This application provides an OpenAI-inspired user interface to:
 
 ### Response Display
 - Model output text displayed in clean formatting
+- Real-time streaming with character-by-character display
+- Blinking cursor animation showing content is being generated
 - Token usage statistics panel (input/output/total tokens)
 - Conversation context maintained via response ID tracking
+
+### Streaming API Details
+The app uses the `/v1/responses` endpoint with `stream: true` to receive SSE events:
+```
+event: response.output_text.delta
+data: {"delta": "text content..."}
+```
+
+Each delta is appended in real-time, creating a smooth typing experience.
 
 ### New Conversation Button
 - Clear chat history while keeping the same model loaded
@@ -44,6 +62,12 @@ This application provides an OpenAI-inspired user interface to:
 
 ## Animations & Visual Effects
 
+### Streaming Animation
+- **Typing cursor blink** - blinking pipe character during response generation
+- **Real-time text appending** - smooth content appearance as SSE events arrive
+- **Auto-scroll** to follow streaming content at bottom of chat
+
+### General UI Animations
 - **Pulse animation** on active model status indicator
 - **Modal slide-in** with bounce effect when opening
 - **Message fade-in** animations for new messages
@@ -58,7 +82,19 @@ This application provides an OpenAI-inspired user interface to:
 | `/api/v1/models` | GET | Fetch list of available models |
 | `/api/v1/models/load` | POST | Load a model into memory |
 | `/api/v1/models/unload` | POST | Unload current model |
-| `/v1/responses` | POST | Send chat messages |
+| `/v1/responses` | POST | Send chat messages (streaming) |
+
+### Streaming Request Body example
+```json
+{
+  "model": "yourmodel",
+  "instructions": "You are a helpful assistant.",
+  "input": "Hello, how are you?",
+  "store": true,
+  "stream": true,
+  "previous_response_id": "resp_abc123"
+}
+```
 
 ## Configuration
 
@@ -77,6 +113,12 @@ npm run dev
 ```
 
 Access the app at http://localhost:5173/ (or port shown in terminal).
+
+### Streaming Requirements
+To use the streaming feature, ensure:
+- LM Studio is running with the `/v1/responses` endpoint available
+- A model is loaded and ready to accept requests
+- The API URL in `src/App.jsx` points to your LM Studio instance
 
 ### Accessing on Local Network
 
