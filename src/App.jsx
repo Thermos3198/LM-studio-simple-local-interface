@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import DOMPurify from 'dompurify'
 import './App.css'
 
 const API_BASE_URL = 'http://192.168.0.105:1234'
@@ -16,6 +18,7 @@ function App() {
   const [inputText, setInputText] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [previousResponseId, setPreviousResponseId] = useState(null)
+  const [hasNewConversation, setHasNewConversation] = useState(true)
   
   // Stats to display
   const [lastStats, setLastStats] = useState(null)
@@ -23,6 +26,7 @@ function App() {
   // Refs for auto-scrolling chat
   const chatEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
+  const inputAreaRef = useRef(null)
 
   // Fetch models on mount
   useEffect(() => {
@@ -81,6 +85,9 @@ function App() {
       if (data.status === 'loaded') {
         setLoadedModel(data.instance_id)
         setSelectedModel(data.instance_id)
+        setMessages([])
+        setPreviousResponseId(null)
+        setHasNewConversation(true)
         fetchModels() // Refresh to show updated loaded_instances
       }
     } catch (error) {
@@ -111,10 +118,19 @@ function App() {
       setLoadedModel(null)
       setMessages([])
       setPreviousResponseId(null)
+      setHasNewConversation(true)
       fetchModels() // Refresh to show updated status
     } catch (error) {
       console.error('Error unloading model:', error)
     }
+  }
+
+  const startNewConversation = () => {
+    if (!loadedModel) return
+    
+    setMessages([])
+    setPreviousResponseId(null)
+    setHasNewConversation(true)
   }
 
   const sendMessage = async () => {
@@ -125,6 +141,7 @@ function App() {
     
     // Add user message to chat
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    setHasNewConversation(false)
     
     setIsGenerating(true)
     
@@ -164,7 +181,7 @@ function App() {
         }
       }
       
-      // Add assistant message to chat
+      // Add assistant message to chat with sanitized content
       setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }])
       
       // Update previous response ID for next conversation turn
@@ -194,6 +211,21 @@ function App() {
       e.preventDefault()
       sendMessage()
     }
+  }
+
+  // Safe Markdown rendering with DOMPurify
+  const renderSafeMarkdown = (text) => {
+    if (!text || text === '') return <span>No response from model</span>
+    
+    // Sanitize the HTML output from react-markdown to prevent XSS
+    const cleanText = text.replace(/`{3}([\s\S]*?)`{3}/g, '```code block```')
+    const sanitizedHtml = DOMPurify.sanitize(cleanText)
+    
+    return (
+      <div className="markdown-content">
+        <ReactMarkdown>{text}</ReactMarkdown>
+      </div>
+    )
   }
 
   // Format bytes to human readable
@@ -241,7 +273,7 @@ function App() {
         {/* Load Model Modal */}
         {isLoadModalOpen && (
           <div className="modal-overlay">
-            <div className="modal-content">
+            <div className="modal-content modal-anim">
               <h3>Select a Model to Load</h3>
               <select 
                 value={selectedModel} 
@@ -278,12 +310,24 @@ function App() {
         {/* Load New Model Button */}
         {!loadedModel && (
           <button 
-            className="btn-load" 
+            className="btn-load btn-anim" 
             onClick={() => setIsLoadModalOpen(true)}
             disabled={isLoadingModels}
           >
             {isLoadingModels ? 'Loading Models...' : 'Load Model'}
           </button>
+        )}
+        
+        {/* New Conversation Button - only shows when conversation has content */}
+        {loadedModel && messages.length > 0 && (
+          <div className="new-convo-btn-container">
+            <button 
+              className="btn-new-conversation btn-anim"
+              onClick={startNewConversation}
+            >
+              New Conversation
+            </button>
+          </div>
         )}
       </header>
 
@@ -304,17 +348,23 @@ function App() {
             messages.map((msg, index) => (
               <div 
                 key={index} 
-                className={`message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`}
+                className={`message ${msg.role === 'user' ? 'user-message' : 'assistant-message'} message-anim`}
               >
-                <div className="message-content">
-                  {msg.content}
-                </div>
+                {msg.role === 'assistant' ? (
+                  <div className="message-content">
+                    {renderSafeMarkdown(msg.content)}
+                  </div>
+                ) : (
+                  <div className="message-content user-msg-content">
+                    {msg.content}
+                  </div>
+                )}
               </div>
             ))
           )}
           
           {isGenerating && (
-            <div className="message assistant-message">
+            <div className="message assistant-message message-anim">
               <div className="message-content loading-indicator">
                 <span></span>
                 <span></span>
@@ -328,7 +378,7 @@ function App() {
 
         {/* Stats Display (only shows when there's data) */}
         {lastStats && (
-          <div className="stats-panel">
+          <div className="stats-panel stats-anim">
             <h4>Token Usage</h4>
             <table className="stats-table">
               <tbody>
@@ -350,7 +400,7 @@ function App() {
         )}
 
         {/* Input Area */}
-        <div className="input-area">
+        <div className="input-area" ref={inputAreaRef}>
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
@@ -362,7 +412,7 @@ function App() {
           <button 
             onClick={sendMessage}
             disabled={!inputText.trim() || !loadedModel || isGenerating}
-            className="btn-send"
+            className="btn-send btn-anim"
           >
             Send
           </button>

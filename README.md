@@ -8,6 +8,7 @@ This application provides an OpenAI-inspired user interface to:
 - **Manage Local Models**: View available models, load/unload them on demand
 - **Chat with LLMs**: Send messages to locally hosted AI models
 - **View Response Stats**: Monitor token usage and model performance metrics
+- **Markdown Support**: Render rich text output from models including bold, italic, code blocks, and more
 
 ## Features
 
@@ -15,19 +16,40 @@ This application provides an OpenAI-inspired user interface to:
 - Fetch list of available models from local LM Studio instance
 - Load models with configurable parameters (context length, flash attention)
 - Unload currently active model when not needed
-- Visual status indicator for loaded models
+- Visual status indicator for loaded models (pulsing green dot)
 
 ### Chat Interface
 - Modern dark theme UI inspired by OpenAI's ChatGPT
-- User and assistant message bubbles
+- User and assistant message bubbles with distinct styling
 - Auto-scrolling chat history
 - Loading state indicator while model generates response
 - Enter to send, Shift+Enter for new lines
+
+### Markdown Support
+- Render rich text output from models including:
+  - **Bold** and *italic* text
+  - Blockquotes with accent borders
+  - Code blocks with syntax-friendly styling
+  - Links, lists, and tables
+- Sanitized HTML output to prevent XSS attacks
 
 ### Response Display
 - Model output text displayed in clean formatting
 - Token usage statistics panel (input/output/total tokens)
 - Conversation context maintained via response ID tracking
+
+### New Conversation Button
+- Clear chat history while keeping the same model loaded
+- Start fresh conversations without reloading models
+
+## Animations & Visual Effects
+
+- **Pulse animation** on active model status indicator
+- **Modal slide-in** with bounce effect when opening
+- **Message fade-in** animations for new messages
+- **Loading indicator** with bouncing dots
+- **Button hover effects** with ripple-like transitions
+- **Smooth scrolling** in chat container
 
 ## API Endpoints Used
 
@@ -55,3 +77,10 @@ npm run dev
 ```
 
 Access the app at http://localhost:5173/ (or port shown in terminal).
+
+## Responsive Design
+
+The application adapts to different screen sizes:
+- **Desktop**: Full-width interface with sidebar-style model management
+- **Tablet**: Optimized spacing and larger touch targets
+- **Mobile**: Stacked layout with condensed controls and full-width messages
