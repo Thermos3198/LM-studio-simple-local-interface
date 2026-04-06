@@ -187,16 +187,7 @@ function App() {
       // Update previous response ID for next conversation turn
       setPreviousResponseId(data.id)
       
-      // Store stats for display
-      if (data.usage) {
-        setLastStats({
-          inputTokens: data.usage.input_tokens,
-          outputTokens: data.usage.output_tokens,
-          totalTokens: data.usage.total_tokens,
-          inputTokensDetails: data.usage.input_tokens_details,
-          outputTokensDetails: data.usage.output_tokens_details
-        })
-      }
+      
       
     } catch (error) {
       console.error('Error sending message:', error)
@@ -376,28 +367,6 @@ function App() {
           <div ref={chatEndRef} />
         </div>
 
-        {/* Stats Display (only shows when there's data) */}
-        {lastStats && (
-          <div className="stats-panel stats-anim">
-            <h4>Token Usage</h4>
-            <table className="stats-table">
-              <tbody>
-                <tr>
-                  <td>Input Tokens</td>
-                  <td>{lastStats.inputTokens}</td>
-                </tr>
-                <tr>
-                  <td>Output Tokens</td>
-                  <td>{lastStats.outputTokens}</td>
-                </tr>
-                <tr>
-                  <td>Total Tokens</td>
-                  <td><strong>{lastStats.totalTokens}</strong></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
 
         {/* Input Area */}
         <div className="input-area" ref={inputAreaRef}>
