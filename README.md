@@ -78,6 +78,21 @@ npm run dev
 
 Access the app at http://localhost:5173/ (or port shown in terminal).
 
+### Accessing on Local Network
+
+To access the application from other devices on your local network:
+
+1. Make sure your Vite config has `server.host` set to `'0.0.0.0'`
+2. The server is already configured for this
+3. Find your computer's local IP address (e.g., 192.168.0.105)
+4. On other devices, visit: `http://YOUR_IP_ADDRESS:5173`
+
+To find your IP address:
+- **Windows**: Run `ipconfig` in Command Prompt and look for "IPv4 Address"
+- **macOS/Linux**: Run `ifconfig` or `ip addr` and look for "inet" address
+
+Other devices must be on the same WiFi/LAN network as your computer.
+
 ## Responsive Design
 
 The application adapts to different screen sizes:
