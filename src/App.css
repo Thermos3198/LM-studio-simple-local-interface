@@ -554,6 +554,39 @@ body {
 .loading-indicator span:nth-child(1) { animation-delay: -0.32s; }
 .loading-indicator span:nth-child(2) { animation-delay: -0.16s; }
 
+/* Streaming Message Styles */
+.streaming-message {
+  opacity: 0.9;
+}
+
+.streaming-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.streaming-content .cursor,
+.streaming-content .typing-cursor {
+  animation: typingCursor 1s infinite;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  color: var(--accent);
+  line-height: 1.6;
+}
+
+@keyframes typingCursor {
+  0%, 50% { opacity: 1; transform: scale(1); }
+  40% { transform: scaleY(1.2); }
+  51%, 100% { opacity: 0.3; }
+}
+
+.streaming-content .typing-cursor {
+  animation-delay: 0.5s;
+}
+
 /* Stats Panel */
 .stats-panel {
   padding: 20px;

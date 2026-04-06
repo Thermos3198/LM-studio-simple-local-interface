@@ -20,6 +20,9 @@ function App() {
   const [previousResponseId, setPreviousResponseId] = useState(null)
   const [hasNewConversation, setHasNewConversation] = useState(true)
   
+  // Streaming state - used to track current message being generated
+  const [currentAssistantMessage, setCurrentAssistantMessage] = useState('')
+  
   // Stats to display
   const [lastStats, setLastStats] = useState(null)
   
@@ -144,13 +147,15 @@ function App() {
     setHasNewConversation(false)
     
     setIsGenerating(true)
+    setCurrentAssistantMessage('')
     
     try {
       const payload = {
         model: loadedModel,
         instructions: "You are a helpful assistant.",
         input: userMessage,
-        store: true
+        store: true,
+        stream: true
       }
       
       // Add previous_response_id if it exists (not first message)
@@ -166,28 +171,74 @@ function App() {
         body: JSON.stringify(payload)
       })
       
-      const data = await response.json()
-      console.log('Response:', data)
-      
-      // Extract the assistant's message from output
+      // Process SSE stream
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
       let assistantMessage = ''
-      if (data.output && data.output.length > 0) {
-        const messageObj = data.output.find(o => o.type === 'message' && o.role === 'assistant')
-        if (messageObj && messageObj.content && messageObj.content.length > 0) {
-          const textContent = messageObj.content.find(c => c.type === 'output_text')
-          if (textContent) {
-            assistantMessage = textContent.text
+      let responseId = null
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        
+        for (const line of lines) {
+          // Handle "event: ... data: ..." on same line
+          if (line.startsWith('event: ') && line.includes('data: ')) {
+            const eventMatch = line.match(/event:\s*(\S+)/)
+            const dataMatch = line.match(/data:\s*(.+)$/)
+            
+            if (dataMatch) {
+              try {
+                const eventData = JSON.parse(dataMatch[1])
+                
+                // Extract response ID from initial events
+                if (eventData.response && !responseId) {
+                  responseId = eventData.response.id
+                }
+                
+                // Handle text deltas
+                if (eventData.type === 'response.output_text.delta') {
+                  assistantMessage += eventData.delta
+                  setCurrentAssistantMessage(assistantMessage)
+                }
+              } catch (e) {
+                console.error('Error parsing SSE data:', e)
+              }
+            }
+          } else if (line.startsWith('data:')) {
+            // Handle "data: ..." on its own line
+            try {
+              const eventData = JSON.parse(line.substring(5))
+              
+              // Extract response ID from initial events
+              if (eventData.response && !responseId) {
+                responseId = eventData.response.id
+              }
+              
+              // Handle text deltas
+              if (eventData.type === 'response.output_text.delta') {
+                assistantMessage += eventData.delta
+                setCurrentAssistantMessage(assistantMessage)
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e)
+            }
           }
         }
       }
       
-      // Add assistant message to chat with sanitized content
-      setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }])
-      
       // Update previous response ID for next conversation turn
-      setPreviousResponseId(data.id)
+      if (responseId) {
+        setPreviousResponseId(responseId)
+      }
       
-      
+      // Add the complete assistant message to chat history
+      if (assistantMessage) {
+        setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }])
+      }
       
     } catch (error) {
       console.error('Error sending message:', error)
@@ -354,12 +405,12 @@ function App() {
             ))
           )}
           
+          {/* Show streaming message during generation */}
           {isGenerating && (
-            <div className="message assistant-message message-anim">
-              <div className="message-content loading-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
+            <div className="message assistant-message message-anim streaming-message">
+              <div className="message-content streaming-content">
+                {currentAssistantMessage || <span className="cursor">|</span>}
+                <span className="typing-cursor"></span>
               </div>
             </div>
           )}
